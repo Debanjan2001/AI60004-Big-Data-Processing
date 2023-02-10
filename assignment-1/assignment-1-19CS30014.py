@@ -179,7 +179,7 @@ def get_top_k_ngrams_for_all_classes_multithreaded(collection_path, num_threads,
         classwise_results[i] = []
 
     collection_classes_paths = [
-        f"{collection_path}/{collection_classes[i]}" 
+        f"{str(os.path.join(collection_path,collection_classes[i]))}" 
         for i in range(num_collection_classes)
     ]
 
