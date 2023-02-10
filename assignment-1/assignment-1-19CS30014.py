@@ -12,7 +12,7 @@ def process_text_from_binary(binary_content):
     if encoding_info['encoding']:
         text = binary_content.decode(encoding_info['encoding'])
     else:
-        text = binary_content.decode('ascii')
+        text = binary_content.decode()
 
     text = text.lower()
     filtered_text = ""
@@ -37,9 +37,8 @@ def get_n_grams_from_single_file(file_path, n_value):
 
 
 def get_n_grams_with_score_from_single_class(class_path, n_value, k_value, tid):
-    print(75*"-")
-    print(f"Thread-{tid} started working on class: {class_path}...")
-    print(75*"-"+"\n")
+    class_name = str(class_path).split('/')[1]
+    print(f"LOG:: Thread-{tid} started working on class: {class_name} ...")
     documents = os.listdir(class_path)
     num_documents = len(documents)
     
@@ -56,9 +55,7 @@ def get_n_grams_with_score_from_single_class(class_path, n_value, k_value, tid):
         for (n_gram,freq) in n_grams_with_frequency
     ]
 
-    print(75*"-")
-    print(f"Thread-{tid} finished working on class: {class_path}")
-    print(75*"-"+"\n")
+    print(f"LOG:: Thread-{tid} finished working on class: {class_name}")
 
     return n_grams_with_score
 
@@ -111,8 +108,24 @@ def get_top_k_ngrams_for_each_class(collection_path, num_threads, n_value, k_val
     
     return prettified_classwise_results
 
-def get_top_k_ngrams_for_collection(classwise_top_k_ngrams):
-    pass
+def get_top_k_ngrams_for_collection(classwise_top_k_ngrams, k_value):
+    n_grams_dict = {}
+    for class_name, n_gram_with_score_list in classwise_top_k_ngrams.items():
+        for n_gram, score in n_gram_with_score_list:
+            if n_gram in n_grams_dict:
+                prev_score = n_grams_dict[n_gram][0]
+                if score > prev_score:
+                    n_grams_dict[n_gram] = [score, class_name]
+            else:
+                n_grams_dict[n_gram] = [score, class_name]
+    
+    overall_ngrams = [
+        [n_gram, score, class_name]
+        for n_gram, [score, class_name] in n_grams_dict.items()
+    ]
+
+    overall_ngrams.sort(key=lambda x:x[1], reverse=True)
+    return overall_ngrams[:k_value]
 
 def main():
     try:
@@ -129,15 +142,22 @@ def main():
     assert(k_value > 0)
 
     classwise_top_k_ngrams = get_top_k_ngrams_for_each_class(collection_path, num_threads, n_value, k_value)
-    
-    for k,v in classwise_top_k_ngrams.items():
-        print(f"{k} ==> {v[:5]}")
+    overall_top_k_ngrams = get_top_k_ngrams_for_collection(classwise_top_k_ngrams, k_value)
 
+    # for k,v in classwise_top_k_ngrams.items():
+    #     print(f"{k} ==> {v[:5]}")
+    # print(overall_top_k_ngrams)
+
+    print(100*"-")
+    print("{:5s} {:40s} {:25s} {:20s}".format("Rank", "N_Gram", "Origin ClassName", "Score",))
+    print(100*"-")
+    for i, [n_gram, score, class_name] in enumerate(overall_top_k_ngrams, 1):
+        print("{:5s} {:40s} {:25s} {}".format(str(i), str(n_gram), class_name, score))
 
 def test():
     temp = get_n_grams_with_score_from_single_class("20_newsgroups/comp.os.ms-windows.misc", 3, 3, "Random")
     print(temp)
     
 if __name__ == "__main__":
-    # main()
-    test()
+    main()
+    # test()
