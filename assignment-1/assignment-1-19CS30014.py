@@ -1,26 +1,24 @@
 import os
 from threading import Thread
-from nltk import word_tokenize, FreqDist
 from nltk.util import ngrams
+from collections import Counter
 import sys
 import chardet
 import math
 
 def process_text_from_binary(binary_content):
-    encoding_info = chardet.detect(binary_content)
-    # print(encoding_info)
-    if encoding_info['encoding']:
-        text = binary_content.decode(encoding_info['encoding'])
-    else:
+    try:
         text = binary_content.decode()
+    except:
+        encoding_info = chardet.detect(binary_content)
+        # print(encoding_info)
+        text = binary_content.decode(encoding_info['encoding'])
 
     text = text.lower()
-    filtered_text = ""
-    for c in text:
-        if c.isalnum():
-            filtered_text += c
-        else:
-            filtered_text += " "
+    filtered_text = "".join([
+        c if c.isalnum() else " "
+        for c in text 
+    ])
 
     return filtered_text
 
@@ -31,10 +29,9 @@ def get_n_grams_from_single_file(file_path, n_value):
     processed_text = process_text_from_binary(file_content)
     # print(file_path, processed_text)
     
-    words = word_tokenize(processed_text)
+    words = [word for word in processed_text.split(" ") if word!=""]
     n_grams_list = list(ngrams(words, n_value))
     return n_grams_list
-
 
 def get_n_grams_with_score_from_single_class(class_path, n_value, k_value, tid):
     class_name = str(class_path).split('/')[1]
@@ -48,7 +45,7 @@ def get_n_grams_with_score_from_single_class(class_path, n_value, k_value, tid):
         n_grams_list.extend(get_n_grams_from_single_file(file_path, n_value))
 
 
-    n_grams_with_frequency = FreqDist(n_grams_list).most_common(k_value)
+    n_grams_with_frequency = Counter(n_grams_list).most_common(k_value)
     # print(n_grams_with_frequency)
     n_grams_with_score = [
         [n_gram, freq/num_documents] 
