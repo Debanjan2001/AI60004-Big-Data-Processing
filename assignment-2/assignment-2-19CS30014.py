@@ -4,8 +4,14 @@ import itertools
 
 infinity = 1e9
 
-class SpecialNode:
 
+class SpecialNode:
+    """
+        - This class is used to represent a node in the graph.
+        - It is used to keep track of the nodes which are merged together
+        - Implements all the necessary magic methods to be used as a key in a dictionary
+        - autoincrements the id of the node every time a new node is created
+    """
     id_generator = itertools.count()
 
     def __init__(self, values:list):
@@ -47,6 +53,13 @@ class SpecialNode:
 
 
 class KargerMincut:
+    """
+        - This class is used to represent the graph
+        - It is used to keep track of the edges in the graph
+        - It is used to keep track of the nodes in the graph
+        - It is used to keep track of the number of edges between two nodes
+        - It is used to run the Karger's algorithm by contracting edges in the graph
+    """
     def __init__(self, edges:list):
         self.graph = {}
         self.vertex_map = {}
@@ -57,6 +70,9 @@ class KargerMincut:
         self.construct_graph(edges)
 
     def construct_graph(self, edges:list):
+        """
+            - This function is used to construct the graph from the given edges
+        """
         self.graph = {}
         for edge in edges:
             u, v = edge
@@ -72,15 +88,24 @@ class KargerMincut:
         self.vertex_max = max(self.vertex_map.keys())
 
     def reorder_nodes(self, u:SpecialNode, v:SpecialNode):
+        """
+            - This function is used to reorder the nodes in the graph
+        """
         if u > v:
             u, v = v, u
         return u, v
 
     def get_edge_count(self, u:SpecialNode, v:SpecialNode):
+        """
+            - This function is used to get the number of edges between two nodes
+        """
         u, v = self.reorder_nodes(u, v)
         return self.edge_count[(u, v)]
 
     def update_edge_count(self, u:SpecialNode, v:SpecialNode, value):
+        """
+            - This function is used to update the number of edges between two nodes
+        """
         u, v = self.reorder_nodes(u, v)
         
         if (u, v) not in self.edge_count:
@@ -92,6 +117,9 @@ class KargerMincut:
             self.edge_count.pop((u, v))
 
     def add_edge(self, u:SpecialNode, v:SpecialNode, edge_count:int=1):
+        """
+            - This function is used to add an edge between two nodes and update edge_count
+        """
         u, v = self.reorder_nodes(u, v)
 
         if u not in self.graph:
@@ -105,6 +133,9 @@ class KargerMincut:
         self.update_edge_count(u, v, edge_count)
 
     def remove_edge(self, u: SpecialNode, v: SpecialNode):
+        """
+            - This function is used to remove an edge between two nodes and update edge_count
+        """
         u, v = self.reorder_nodes(u, v)
 
         self.graph[u].remove(v)
@@ -113,6 +144,9 @@ class KargerMincut:
         self.update_edge_count(u, v, -self.get_edge_count(u, v))
 
     def contract_edge(self, a:SpecialNode, b:SpecialNode):
+        """
+            - This function is used to contract an edge between two nodes
+        """
         a, b = self.reorder_nodes(a, b)
         
         # Remove the connection first
@@ -145,29 +179,32 @@ class KargerMincut:
         self.graph.pop(b)
 
     def get_random_edge(self):
-        edgelist = list(self.edgeset)
-        weights = [self.get_edge_count(edge[0], edge[1]) for edge in edgelist]
-        # print(weights)
+        """
+            - This function is used to get a random edge from the graph
+            - Used weighted random probability to obtain the random edge as shown in class
+        """
         return random.choices(
-            population=edgelist,
-            weights=weights,
+            population=list(self.edge_count.keys()),
+            weights=list(self.edge_count.values()),
             k=1,
         )[0]
+        
     
     def run_algorithm(self):
+        """
+            - This function is used to run the Karger's algorithm and return results
+        """
         while len(self.graph) > 2:
             # print("Before contraction")
             # print(self.graph)
             u, v = self.get_random_edge()
+            
             # print("Contracting edge")
             # print(u,v)
             self.contract_edge(u, v)
             
             # print("After contraction")
             # print(self.graph)
-            # print(list(self.edgeset))
-            # print(self.edge_count)
-            # print(50*"-")
 
         assert(len(self.edgeset) == 1)
         assert(len(self.edge_count) == 1)
@@ -191,7 +228,8 @@ def main():
 
     min_cut = infinity
     result = None
-    for i in range(10):
+    for i in range(3):
+        print(f"Running iteration-{i+1} ...")
         kargerMincutSimulator = KargerMincut(graph_edgelist)
         edge, current_min_cut = kargerMincutSimulator.run_algorithm()
         if current_min_cut < min_cut:
