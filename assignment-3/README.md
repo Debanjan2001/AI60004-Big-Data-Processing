@@ -1,4 +1,4 @@
 # How to run?
 ```
-spark-submit assignment-3-19CS30014.py day 5 
+spark-submit gpt.py data.txt apple 10 stopwords.txt
 ```
