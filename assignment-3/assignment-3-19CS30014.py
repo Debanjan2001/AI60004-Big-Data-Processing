@@ -1,6 +1,7 @@
 from pyspark import SparkConf, SparkContext
 from operator import add
 import sys
+import math
 
 def print_sample(*args, **kwargs):
     print(50*"-")
@@ -39,6 +40,10 @@ def preprocess_document(document, stopwords):
 def co_occurence_mapper(document, query_word):
     is_query_word_present = (True if query_word in document else False)
     if not is_query_word_present:
+        # return {
+        #     word: 0
+        #     for word in document if word != query_word
+        # }
         return {}
     
     co_occurence_dict = {
@@ -46,6 +51,13 @@ def co_occurence_mapper(document, query_word):
         for word in document if word != query_word
     }
     return co_occurence_dict
+
+def calculate_pmi_score(p_x_y, p_x, p_y, n):
+    if p_x_y == 0:
+        return -math.inf
+    
+    value = (p_x_y * n) / (p_x * p_y)
+    return math.log2(value)
 
 def init_pyspark_application():
     # Initialize Spark
@@ -85,7 +97,7 @@ def main():
     documents_with_unique_words_list_rdd = documents_rdd.map(lambda doc_word_list: set(doc_word_list))
     # print_sample(documents_with_unique_words_list_rdd_first_5=documents_with_unique_words_list_rdd.take(5))
     
-    word_present_in_documents_count = documents_with_unique_words_list_rdd.flatMap(lambda x:x).countByValue()
+    word_present_in_documents_count = documents_with_unique_words_list_rdd.flatMap(lambda x:list(x)).countByValue()
     # print_sample(word_present_in_documents_count=word_present_in_documents_count)
 
     #  Calculate the count of the query word in this word_present_in_documents_rdd
@@ -103,7 +115,7 @@ def main():
 
     # Compute the PMI for each word, simplifying the formula, we get
     # pmi = (p(x,y)/N) / ((p(x)/N)*(p(y)/N)) = p(x,y) * N / (p(x)*p(y))
-    pmi_rdd = co_occurence_counts_rdd.map(lambda x: (x[0], x[1]*num_documents/(word_present_in_documents_count[x[0]]*query_word_count))) 
+    pmi_rdd = co_occurence_counts_rdd.map(lambda x: (x[0], calculate_pmi_score(x[1], query_word_count, word_present_in_documents_count.get(x[0]), num_documents))) 
     # print_sample(pmi_rdd_first_5=pmi_rdd.take(5))
 
     # Sort the PMI values in descending order
