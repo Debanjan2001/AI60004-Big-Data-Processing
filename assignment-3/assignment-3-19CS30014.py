@@ -53,6 +53,8 @@ def co_occurence_mapper(document, query_word):
     return co_occurence_dict
 
 def calculate_pmi_score(p_x_y, p_x, p_y, n):
+    # Compute the PMI for each word, simplifying the formula, we get
+    # pmi = (p(x,y)/N) / ((p(x)/N)*(p(y)/N)) = p(x,y) * N / (p(x)*p(y))
     if p_x_y == 0:
         return -math.inf
     
@@ -65,7 +67,7 @@ def init_pyspark_application():
     conf.setAppName('WordAssociationUsingSpark')
     # conf.setMaster("local")
     sc = SparkContext(conf=conf)
-    sc.setLogLevel("OFF")
+    # sc.setLogLevel("OFF")
     return sc
 
 def finish_pyspark_application(sc):
@@ -113,8 +115,6 @@ def main():
     co_occurence_counts_rdd = co_occurence_dicts_rdd.flatMap(lambda x:x.items()).reduceByKey(add)
     # print_sample(co_occurence_counts_rdd_first_5=co_occurence_counts_rdd.take(5))
 
-    # Compute the PMI for each word, simplifying the formula, we get
-    # pmi = (p(x,y)/N) / ((p(x)/N)*(p(y)/N)) = p(x,y) * N / (p(x)*p(y))
     pmi_rdd = co_occurence_counts_rdd.map(lambda x: (x[0], calculate_pmi_score(x[1], query_word_count, word_present_in_documents_count.get(x[0]), num_documents))) 
     # print_sample(pmi_rdd_first_5=pmi_rdd.take(5))
 
@@ -124,17 +124,21 @@ def main():
     pmi_ordered_words = pmi_rdd_sorted.collect()
 
     print_sample()
+
+    if query_word_count == 0:
+        print(f"Query word '{query_word}' is not present in the corpus. Please try again with a different query word.")
+
     # Print the top k words with the highest PMI values
-    print(f"Top {k} words with highest PMI values with the query word '{query_word}' are:")
+    print(f"Top {k} positively asssociated words with the query word '{query_word}' are:")
     for i, (word, pmi_value) in enumerate(pmi_ordered_words[:k], 1):
-        print(f"{i}. Word: {word}, PMI: {pmi_value}")
+        print(f"{i}. Word: {word}, PMI Score: {pmi_value}")
 
     print("")
 
     # Print the bottom k words with the lowest PMI values
-    print(f"Bottom {k} words with lowest PMI values with the query word '{query_word}' are:")
+    print(f"Top {k} negatively associated words with the query word '{query_word}' are:")
     for i, (word, pmi_value) in enumerate(pmi_ordered_words[::-1][:k], 1):
-        print(f"{i}. Word: {word}, PMI: {pmi_value}")
+        print(f"{i}. Word: {word}, PMI Score: {pmi_value}")
     
     print_sample()
 
