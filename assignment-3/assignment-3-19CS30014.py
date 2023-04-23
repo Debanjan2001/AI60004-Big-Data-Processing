@@ -40,11 +40,11 @@ def preprocess_document(document, stopwords):
 def co_occurence_mapper(document, query_word):
     is_query_word_present = (True if query_word in document else False)
     if not is_query_word_present:
-        # return {
-        #     word: 0
-        #     for word in document if word != query_word
-        # }
-        return {}
+        return {
+            word: 0
+            for word in document if word != query_word
+        }
+        # return {}
     
     co_occurence_dict = {
         word: 1
@@ -118,10 +118,12 @@ def main():
     pmi_rdd = co_occurence_counts_rdd.map(lambda x: (x[0], calculate_pmi_score(x[1], query_word_count, word_present_in_documents_count.get(x[0]), num_documents))) 
     # print_sample(pmi_rdd_first_5=pmi_rdd.take(5))
 
-    # Sort the PMI values in descending order
-    pmi_rdd_sorted = pmi_rdd.sortBy(lambda x: x[1], ascending=False)
+    # Sort the PMI values in descending/ascending order
+    pmi_rdd_desc_sorted = pmi_rdd.sortBy(lambda x: x[1], ascending=False)
+    pmi_rdd_asc_sorted = pmi_rdd.sortBy(lambda x: x[1], ascending=True)
 
-    pmi_ordered_words = pmi_rdd_sorted.collect()
+    positive_values = pmi_rdd_desc_sorted.take(k)
+    negative_values = pmi_rdd_asc_sorted.take(k)
 
     print_sample()
 
@@ -130,14 +132,14 @@ def main():
 
     # Print the top k words with the highest PMI values
     print(f"Top {k} positively asssociated words with the query word '{query_word}' are:")
-    for i, (word, pmi_value) in enumerate(pmi_ordered_words[:k], 1):
+    for i, (word, pmi_value) in enumerate(positive_values, 1):
         print(f"{i}. Word: {word}, PMI Score: {pmi_value}")
 
     print("")
 
     # Print the bottom k words with the lowest PMI values
     print(f"Top {k} negatively associated words with the query word '{query_word}' are:")
-    for i, (word, pmi_value) in enumerate(pmi_ordered_words[::-1][:k], 1):
+    for i, (word, pmi_value) in enumerate(negative_values, 1):
         print(f"{i}. Word: {word}, PMI Score: {pmi_value}")
     
     print_sample()
